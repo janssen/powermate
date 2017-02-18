@@ -131,7 +131,7 @@ class Powermate(object):
         if callback in self.__callbacks:
             self.__callbacks.remove(callback)
 
-    def __notify(self, event):
+    def notify(self, event):
         for callback in self.__callbacks:
             callback(event)
 
@@ -139,13 +139,13 @@ class Powermate(object):
         button_state = data[0]
         if button_state != self.__button_state:
             self.__button_state = button_state
-            self.__notify((self._BUTTON, self._DOWN if button_state else self._UP))
+            self.notify((self._BUTTON, self._DOWN if button_state else self._UP))
 
         wheel_delta = data[1]
         if wheel_delta > 0:
             if wheel_delta & 0x80:
                 wheel_delta -= 256
-            self.__notify((self._WHEEL, wheel_delta))
+            self.notify((self._WHEEL, wheel_delta))
 
     def __watch(self):
         while True:
