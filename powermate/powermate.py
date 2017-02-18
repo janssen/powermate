@@ -24,6 +24,16 @@ class Powermate(object):
     _UP = intern("up")
     _DOWN = intern("down")
 
+    @staticmethod
+    def has_powermate():
+        dev = hid.device()
+        try:
+            dev.open(self.VENDOR_ID, self.PRODUCT_ID)
+        except:
+            return None
+        else:
+            return dev
+
     def __init__(self):
 
         self.__button_state = None      # unknown
