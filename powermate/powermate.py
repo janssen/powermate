@@ -54,7 +54,7 @@ class Powermate(object):
         atexit.register(lambda dev=self.__dev: dev.close())
 
     def __command(self, command, *args):
-        featureReport = [self._REPORT_ID, 0x41, 1, command, 0, 0, 0, 0, 0]
+        featureReport = [0x41, 1, command, 0, 0, 0, 0, 0]
         for i in range(len(args)):
             featureReport[i + 4] = int(args[i])
         self.__dev.send_feature_report(featureReport)
