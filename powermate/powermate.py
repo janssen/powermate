@@ -56,7 +56,7 @@ class Powermate(object):
     def __command(self, command, *args):
         featureReport = [self._REPORT_ID, 0x41, 1, command, 0, 0, 0, 0, 0]
         for i in range(len(args)):
-            featureReport[i + 4] = args[i]
+            featureReport[i + 4] = int(args[i])
         self.__dev.send_feature_report(featureReport)
 
     def __inspect(self):
@@ -74,7 +74,8 @@ class Powermate(object):
         """Sets the brightness of the PowerMate's LED
              brightness: A value from 0 (darkest) to 255 (brightest), inclusive
         """
-        self.__command(self._SET_STATIC_BRIGHTNESS, brightness)
+        logging.debug('set brightness to %s', int(brightness))
+        self.__command(self._SET_STATIC_BRIGHTNESS, int(brightness))
 
     @property
     def pulsing(self):
@@ -87,6 +88,7 @@ class Powermate(object):
              pulse: A boolean value indicating whether to pulse (True), or not
              (False)
         """
+        logging.debug("set pulsing to %s", 1 if pulse else 0)
         self.__command(self._SET_PULSE_AWAKE, 1 if pulse else 0)
 
     @property
@@ -120,16 +122,17 @@ class Powermate(object):
              speed: A value from -255 to 255 (inclusive). Lower values are
                slower, higher values are faster
         """
-        if speed < 255:
+        if speed < 0:
             ptable = 0;
-            speed = 254 - speed
-        elif pulseSpeed == 255:
+            speed = int(speed + 255)
+        elif speed == 0:
             ptable = 1;
             speed = 0;
         else:
             ptable = 2;
-            speed -= 255;
+            speed = speed
 
+        logging.debug('set pulse speed to table %s, speed %s', ptable, speed)
         self.__command(self._SET_PULSE_MODE, ptable, speed);
 
     @property
