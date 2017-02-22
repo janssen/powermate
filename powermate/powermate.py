@@ -1,3 +1,4 @@
+import atexit
 import logging
 import sys
 import threading
@@ -28,10 +29,11 @@ class Powermate(object):
     def has_powermate():
         dev = hid.device()
         try:
-            dev.open(self.VENDOR_ID, self.PRODUCT_ID)
+            dev.open(Powermate.VENDOR_ID, Powermate.PRODUCT_ID)
         except:
             return None
         else:
+            dev.close()
             return dev
 
     def __init__(self):
@@ -49,6 +51,7 @@ class Powermate(object):
                       self.__dev.get_product_string())
 
         self.__dev.set_nonblocking(1)
+        atexit.register(lambda dev=self.__dev: dev.close())
 
     def __command(self, command, *args):
         featureReport = [self._REPORT_ID, 0x41, 1, command, 0, 0, 0, 0, 0]
@@ -132,7 +135,7 @@ class Powermate(object):
     @property
     def button_state(self):
         report = self.__inspect()
-        return response[0]
+        return report[0]
 
     def register_callback(self, callback):
         self.__callbacks.append(callback)
