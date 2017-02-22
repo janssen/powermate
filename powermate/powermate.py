@@ -124,7 +124,7 @@ class Powermate(object):
         """
         if speed < 0:
             ptable = 0;
-            speed = int(speed + 255)
+            speed = int(speed) + 256
         elif speed == 0:
             ptable = 1;
             speed = 0;
@@ -133,7 +133,7 @@ class Powermate(object):
             speed = speed
 
         logging.debug('set pulse speed to table %s, speed %s', ptable, speed)
-        self.__command(self._SET_PULSE_MODE, ptable, speed);
+        self.__command(self._SET_PULSE_MODE, ptable, 1, speed);
 
     @property
     def button_state(self):
