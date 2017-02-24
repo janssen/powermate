@@ -161,8 +161,12 @@ class Powermate(object):
                 data = self.__dev.read(60, timeout_ms=100)
                 if data:
                     self.__parse_event(data)
+            except ValueError as x:
+                return
+            except IOError as x:
+                pass
             except Exception as x:
-                logging.warn("exception '%s' on Powermate watch loop", x)            
+                logging.warn("exception '%s' %s on Powermate watch loop", x, x.__class__)
 
     def watch(self):
         self.__event_thread = threading.Thread(target=self.__watch)
