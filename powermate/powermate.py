@@ -122,18 +122,10 @@ class Powermate(object):
              speed: A value from -255 to 255 (inclusive). Lower values are
                slower, higher values are faster
         """
-        if speed < 0:
-            ptable = 0;
-            speed = int(speed) + 256
-        elif speed == 0:
-            ptable = 1;
-            speed = 0;
-        else:
-            ptable = 2;
-            speed = speed
-
-        logging.debug('set pulse speed to table %s, speed %s', ptable, speed)
-        self.__command(self._SET_PULSE_MODE, ptable, 1, speed);
+        assert isinstance(speed, tuple) and len(speed) == 3
+        table, mode, speed = speed
+        logging.debug('set pulse speed to table %s, mode %s, speed %s', table, mode, speed)
+        self.__command(self._SET_PULSE_MODE, table, mode, speed);
 
     @property
     def button_state(self):
@@ -169,8 +161,12 @@ class Powermate(object):
                 data = self.__dev.read(60, timeout_ms=100)
                 if data:
                     self.__parse_event(data)
+            except ValueError as x:
+                return
+            except IOError as x:
+                pass
             except Exception as x:
-                logging.warn("exception '%s' on Powermate watch loop", x)            
+                logging.warn("exception '%s' %s on Powermate watch loop", x, x.__class__)
 
     def watch(self):
         self.__event_thread = threading.Thread(target=self.__watch)
