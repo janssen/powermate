@@ -56,7 +56,7 @@ class Powermate(object):
     def __command(self, command, *args):
         featureReport = [0x41, 1, command, 0, 0, 0, 0, 0]
         for i in range(len(args)):
-            featureReport[i + 4] = int(args[i])
+            featureReport[i + 3] = int(args[i])
         self.__dev.send_feature_report(featureReport)
 
     def __inspect(self):
@@ -75,7 +75,7 @@ class Powermate(object):
              brightness: A value from 0 (darkest) to 255 (brightest), inclusive
         """
         logging.debug('set brightness to %s', int(brightness))
-        self.__command(self._SET_STATIC_BRIGHTNESS, int(brightness))
+        self.__command(self._SET_STATIC_BRIGHTNESS, 0, int(brightness))
 
     @property
     def pulsing(self):
@@ -89,7 +89,7 @@ class Powermate(object):
              (False)
         """
         logging.debug("set pulsing to %s", 1 if pulse else 0)
-        self.__command(self._SET_PULSE_AWAKE, 1 if pulse else 0)
+        self.__command(self._SET_PULSE_AWAKE, 0, 1 if pulse else 0)
 
     @property
     def pulsing_when_asleep(self):
@@ -102,7 +102,7 @@ class Powermate(object):
              pulse: A boolean value indicating whether to pulse (True), or not
              (False)
         """
-        self.__command(self._SET_PULSE_ASLEEP, 1 if pulse else 0)
+        self.__command(self._SET_PULSE_ASLEEP, 0, 1 if pulse else 0)
 
     @property
     def pulse_speed(self):
@@ -117,23 +117,15 @@ class Powermate(object):
         return speed
 
     @pulse_speed.setter
-    def pulse_speed(self, speed):
+    def pulse_speed(self, value):
         """Sets the pulse speed of the PowerMate's LED
-             speed: A value from -255 to 255 (inclusive). Lower values are
-               slower, higher values are faster
+        `table` is 0, 1, or 2 -- not sure what that means
+        `mode` is 0, 1, or 2 -- divides, normal, multiplies
+        `speed` is 0-255 -- speed of pulsing
         """
-        if speed < 0:
-            ptable = 0;
-            speed = int(speed) + 256
-        elif speed == 0:
-            ptable = 1;
-            speed = 0;
-        else:
-            ptable = 2;
-            speed = speed
-
-        logging.debug('set pulse speed to table %s, speed %s', ptable, speed)
-        self.__command(self._SET_PULSE_MODE, ptable, 1, speed);
+        assert isinstance(value, tuple) and len(value) == 3
+        table, mode, speed = value
+        self.__command(self._SET_PULSE_MODE, table, mode, speed);
 
     @property
     def button_state(self):
