@@ -30,8 +30,10 @@ class Powermate(object):
         try:
             dev.open(self.VENDOR_ID, self.PRODUCT_ID)
         except:
+            print "no powermate"
             return None
         else:
+            print "powermate connected"
             return dev
 
     def __init__(self):
