@@ -1,3 +1,4 @@
+import atexit
 import logging
 import sys
 import threading
@@ -28,12 +29,13 @@ class Powermate(object):
     def has_powermate():
         dev = hid.device()
         try:
-            dev.open(self.VENDOR_ID, self.PRODUCT_ID)
+            dev.open(Powermate.VENDOR_ID, Powermate.PRODUCT_ID)
         except:
             print "no powermate"
             return None
         else:
             print "powermate connected"
+            dev.close()
             return dev
 
     def __init__(self):
@@ -51,11 +53,12 @@ class Powermate(object):
                       self.__dev.get_product_string())
 
         self.__dev.set_nonblocking(1)
+        atexit.register(lambda dev=self.__dev: dev.close())
 
     def __command(self, command, *args):
-        featureReport = [self._REPORT_ID, 0x41, 1, command, 0, 0, 0, 0, 0]
+        featureReport = [0x41, 1, command, 0, 0, 0, 0, 0]
         for i in range(len(args)):
-            featureReport[i + 4] = args[i]
+            featureReport[i + 3] = int(args[i])
         self.__dev.send_feature_report(featureReport)
 
     def __inspect(self):
@@ -73,7 +76,8 @@ class Powermate(object):
         """Sets the brightness of the PowerMate's LED
              brightness: A value from 0 (darkest) to 255 (brightest), inclusive
         """
-        self.__command(self._SET_STATIC_BRIGHTNESS, brightness)
+        logging.debug('set brightness to %s', int(brightness))
+        self.__command(self._SET_STATIC_BRIGHTNESS, 0, int(brightness))
 
     @property
     def pulsing(self):
@@ -86,7 +90,8 @@ class Powermate(object):
              pulse: A boolean value indicating whether to pulse (True), or not
              (False)
         """
-        self.__command(self._SET_PULSE_AWAKE, 1 if pulse else 0)
+        logging.debug("set pulsing to %s", 1 if pulse else 0)
+        self.__command(self._SET_PULSE_AWAKE, 0, 1 if pulse else 0)
 
     @property
     def pulsing_when_asleep(self):
@@ -99,7 +104,7 @@ class Powermate(object):
              pulse: A boolean value indicating whether to pulse (True), or not
              (False)
         """
-        self.__command(self._SET_PULSE_ASLEEP, 1 if pulse else 0)
+        self.__command(self._SET_PULSE_ASLEEP, 0, 1 if pulse else 0)
 
     @property
     def pulse_speed(self):
@@ -114,27 +119,20 @@ class Powermate(object):
         return speed
 
     @pulse_speed.setter
-    def pulse_speed(self, speed):
+    def pulse_speed(self, value):
         """Sets the pulse speed of the PowerMate's LED
-             speed: A value from -255 to 255 (inclusive). Lower values are
-               slower, higher values are faster
+        `table` is 0, 1, or 2 -- not sure what that means
+        `mode` is 0, 1, or 2 -- divides, normal, multiplies
+        `speed` is 0-255 -- speed of pulsing
         """
-        if speed < 255:
-            ptable = 0;
-            speed = 254 - speed
-        elif pulseSpeed == 255:
-            ptable = 1;
-            speed = 0;
-        else:
-            ptable = 2;
-            speed -= 255;
-
-        self.__command(self._SET_PULSE_MODE, ptable, speed);
+        assert isinstance(value, tuple) and len(value) == 3
+        table, mode, speed = value
+        self.__command(self._SET_PULSE_MODE, table, mode, speed);
 
     @property
     def button_state(self):
         report = self.__inspect()
-        return response[0]
+        return report[0]
 
     def register_callback(self, callback):
         self.__callbacks.append(callback)
@@ -165,8 +163,12 @@ class Powermate(object):
                 data = self.__dev.read(60, timeout_ms=100)
                 if data:
                     self.__parse_event(data)
+            except ValueError as x:
+                return
+            except IOError as x:
+                pass
             except Exception as x:
-                logging.warn("exception '%s' on Powermate watch loop", x)            
+                logging.warn("exception '%s' %s on Powermate watch loop", x, x.__class__)
 
     def watch(self):
         self.__event_thread = threading.Thread(target=self.__watch)
